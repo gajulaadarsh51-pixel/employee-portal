@@ -1,4 +1,4 @@
-// FILE: src/pages/admin/AdminLeaves.tsx (With BackButton)
+// FILE: src/pages/admin/AdminLeaves.tsx (Updated with target)
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -38,12 +38,13 @@ const AdminLeaves = () => {
     localStorage.setItem("leaveRequests", JSON.stringify(updated));
     loadLeaves();
 
+    // 🔔 Notification for EMPLOYEE only
     addNotification({
       id: Date.now().toString(),
       title: "Leave Approved",
       message: `Your ${leave.type} leave from ${leave.startDate} to ${leave.endDate} has been approved`,
       link: "/employee/leave-status",
-      read: false,
+      target: "EMPLOYEE", // 🔥 Only employee sees this
     });
 
     toast({
@@ -59,12 +60,13 @@ const AdminLeaves = () => {
     localStorage.setItem("leaveRequests", JSON.stringify(updated));
     loadLeaves();
 
+    // 🔔 Notification for EMPLOYEE only
     addNotification({
       id: Date.now().toString(),
       title: "Leave Rejected",
       message: `Your ${leave.type} leave request has been rejected. Please contact HR for details.`,
       link: "/employee/leave-status",
-      read: false,
+      target: "EMPLOYEE", // 🔥 Only employee sees this
     });
 
     toast({
@@ -83,24 +85,24 @@ const AdminLeaves = () => {
       <BackButton />
       
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Leave Requests</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">Leave Requests</h2>
         <p className="text-muted-foreground">Manage employee leave requests</p>
       </div>
 
       {/* Pending Requests */}
       <div className="space-y-3">
-        <h3 className="text-lg font-semibold">Pending Requests ({pendingLeaves.length})</h3>
+        <h3 className="text-lg font-semibold text-foreground">Pending Requests ({pendingLeaves.length})</h3>
         {pendingLeaves.length === 0 ? (
-          <div className="card text-center py-8 text-muted-foreground">
+          <div className="bg-white border border-gray-200 rounded-2xl text-center py-8 text-muted-foreground">
             No pending leave requests
           </div>
         ) : (
           <div className="grid gap-3">
             {pendingLeaves.map((leave) => (
-              <div key={leave.id} className="card">
+              <div key={leave.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                 <div className="flex flex-wrap justify-between items-start gap-3">
                   <div className="space-y-1">
-                    <p className="font-medium">{leave.employeeName}</p>
+                    <p className="font-medium text-foreground">{leave.employeeName}</p>
                     <p className="text-sm text-muted-foreground">
                       {leave.type} Leave | {leave.startDate} to {leave.endDate}
                     </p>
@@ -127,13 +129,13 @@ const AdminLeaves = () => {
       {/* Approved Requests */}
       {approvedLeaves.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold">Approved Requests ({approvedLeaves.length})</h3>
+          <h3 className="text-lg font-semibold text-foreground">Approved Requests ({approvedLeaves.length})</h3>
           <div className="grid gap-3">
             {approvedLeaves.map((leave) => (
-              <div key={leave.id} className="card bg-green-50">
+              <div key={leave.id} className="bg-green-50 border border-green-200 rounded-xl p-4">
                 <div className="flex flex-wrap justify-between items-start gap-3">
                   <div>
-                    <p className="font-medium">{leave.employeeName}</p>
+                    <p className="font-medium text-foreground">{leave.employeeName}</p>
                     <p className="text-sm text-muted-foreground">
                       {leave.type} Leave | {leave.startDate} to {leave.endDate}
                     </p>
@@ -149,13 +151,13 @@ const AdminLeaves = () => {
       {/* Rejected Requests */}
       {rejectedLeaves.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold">Rejected Requests ({rejectedLeaves.length})</h3>
+          <h3 className="text-lg font-semibold text-foreground">Rejected Requests ({rejectedLeaves.length})</h3>
           <div className="grid gap-3">
             {rejectedLeaves.map((leave) => (
-              <div key={leave.id} className="card bg-red-50">
+              <div key={leave.id} className="bg-red-50 border border-red-200 rounded-xl p-4">
                 <div className="flex flex-wrap justify-between items-start gap-3">
                   <div>
-                    <p className="font-medium">{leave.employeeName}</p>
+                    <p className="font-medium text-foreground">{leave.employeeName}</p>
                     <p className="text-sm text-muted-foreground">
                       {leave.type} Leave | {leave.startDate} to {leave.endDate}
                     </p>

@@ -1,174 +1,133 @@
-// FILE: src/pages/admin/AdminLeaves.tsx (With BackButton)
+// FILE: src/pages/employee/ApplyLeave.tsx (Updated with target)
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { addNotification } from "@/utils/notifications";
 import { useToast } from "@/hooks/use-toast";
 import BackButton from "@/components/BackButton";
 
-interface LeaveRequest {
-  id: string;
-  employeeName: string;
-  employeeId: string;
-  startDate: string;
-  endDate: string;
-  type: string;
-  reason: string;
-  status: string;
-  appliedOn: string;
-}
-
-const AdminLeaves = () => {
-  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
+const ApplyLeave = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    startDate: "",
+    endDate: "",
+    type: "Sick",
+    reason: "",
+  });
 
-  useEffect(() => {
-    loadLeaves();
-  }, []);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const leaves = JSON.parse(localStorage.getItem("leaveRequests") || "[]");
+    const newLeave = {
+      id: Date.now().toString(),
+      employeeName: user?.name,
+      employeeId: user?.id,
+      ...formData,
+      status: "Pending",
+      appliedOn: new Date().toISOString(),
+    };
+    leaves.push(newLeave);
+    localStorage.setItem("leaveRequests", JSON.stringify(leaves));
 
-  const loadLeaves = () => {
-    const stored = JSON.parse(localStorage.getItem("leaveRequests") || "[]");
-    setLeaves(stored);
-  };
-
-  const handleApprove = (leave: LeaveRequest) => {
-    const updated = leaves.map(l =>
-      l.id === leave.id ? { ...l, status: "Approved" } : l
-    );
-    localStorage.setItem("leaveRequests", JSON.stringify(updated));
-    loadLeaves();
-
+    // 🔔 Notification for ADMIN only
     addNotification({
       id: Date.now().toString(),
-      title: "Leave Approved",
-      message: `Your ${leave.type} leave from ${leave.startDate} to ${leave.endDate} has been approved`,
-      link: "/employee/leave-status",
-      read: false,
+      title: "New Leave Request",
+      message: `${user?.name} applied for ${formData.type} leave from ${formData.startDate} to ${formData.endDate}`,
+      link: "/admin/leaves",
+      target: "ADMIN", // 🔥 Only admin sees this
     });
 
     toast({
-      title: "Leave Approved",
-      description: `Leave request for ${leave.employeeName} has been approved.`,
+      title: "Leave Applied",
+      description: "Your leave request has been submitted successfully.",
+    });
+
+    setFormData({
+      startDate: "",
+      endDate: "",
+      type: "Sick",
+      reason: "",
     });
   };
-
-  const handleReject = (leave: LeaveRequest) => {
-    const updated = leaves.map(l =>
-      l.id === leave.id ? { ...l, status: "Rejected" } : l
-    );
-    localStorage.setItem("leaveRequests", JSON.stringify(updated));
-    loadLeaves();
-
-    addNotification({
-      id: Date.now().toString(),
-      title: "Leave Rejected",
-      message: `Your ${leave.type} leave request has been rejected. Please contact HR for details.`,
-      link: "/employee/leave-status",
-      read: false,
-    });
-
-    toast({
-      title: "Leave Rejected",
-      description: `Leave request for ${leave.employeeName} has been rejected.`,
-      variant: "destructive",
-    });
-  };
-
-  const pendingLeaves = leaves.filter(l => l.status === "Pending");
-  const approvedLeaves = leaves.filter(l => l.status === "Approved");
-  const rejectedLeaves = leaves.filter(l => l.status === "Rejected");
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-2xl mx-auto">
       <BackButton />
       
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Leave Requests</h2>
-        <p className="text-muted-foreground">Manage employee leave requests</p>
-      </div>
-
-      {/* Pending Requests */}
-      <div className="space-y-3">
-        <h3 className="text-lg font-semibold">Pending Requests ({pendingLeaves.length})</h3>
-        {pendingLeaves.length === 0 ? (
-          <div className="card text-center py-8 text-muted-foreground">
-            No pending leave requests
+      <h2 className="text-2xl font-bold tracking-tight mb-6">Apply for Leave</h2>
+      
+      <form onSubmit={handleSubmit} className="card space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="startDate">Start Date</Label>
+            <Input
+              id="startDate"
+              type="date"
+              required
+              value={formData.startDate}
+              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+            />
           </div>
-        ) : (
-          <div className="grid gap-3">
-            {pendingLeaves.map((leave) => (
-              <div key={leave.id} className="card">
-                <div className="flex flex-wrap justify-between items-start gap-3">
-                  <div className="space-y-1">
-                    <p className="font-medium">{leave.employeeName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {leave.type} Leave | {leave.startDate} to {leave.endDate}
-                    </p>
-                    <p className="text-sm">{leave.reason}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Applied on: {new Date(leave.appliedOn).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => handleApprove(leave)}>
-                      Approve
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleReject(leave)}>
-                      Reject
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Approved Requests */}
-      {approvedLeaves.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold">Approved Requests ({approvedLeaves.length})</h3>
-          <div className="grid gap-3">
-            {approvedLeaves.map((leave) => (
-              <div key={leave.id} className="card bg-green-50">
-                <div className="flex flex-wrap justify-between items-start gap-3">
-                  <div>
-                    <p className="font-medium">{leave.employeeName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {leave.type} Leave | {leave.startDate} to {leave.endDate}
-                    </p>
-                  </div>
-                  <span className="text-green-700 text-sm font-medium">✓ Approved</span>
-                </div>
-              </div>
-            ))}
+          
+          <div className="space-y-2">
+            <Label htmlFor="endDate">End Date</Label>
+            <Input
+              id="endDate"
+              type="date"
+              required
+              value={formData.endDate}
+              onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+            />
           </div>
         </div>
-      )}
 
-      {/* Rejected Requests */}
-      {rejectedLeaves.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold">Rejected Requests ({rejectedLeaves.length})</h3>
-          <div className="grid gap-3">
-            {rejectedLeaves.map((leave) => (
-              <div key={leave.id} className="card bg-red-50">
-                <div className="flex flex-wrap justify-between items-start gap-3">
-                  <div>
-                    <p className="font-medium">{leave.employeeName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {leave.type} Leave | {leave.startDate} to {leave.endDate}
-                    </p>
-                  </div>
-                  <span className="text-red-700 text-sm font-medium">✗ Rejected</span>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="type">Leave Type</Label>
+          <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select leave type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Sick">Sick Leave</SelectItem>
+              <SelectItem value="Casual">Casual Leave</SelectItem>
+              <SelectItem value="Annual">Annual Leave</SelectItem>
+              <SelectItem value="Emergency">Emergency Leave</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      )}
+
+        <div className="space-y-2">
+          <Label htmlFor="reason">Reason</Label>
+          <Textarea
+            id="reason"
+            placeholder="Please provide reason for leave"
+            required
+            value={formData.reason}
+            onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+            rows={4}
+          />
+        </div>
+
+        <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+          Submit Leave Request
+        </Button>
+      </form>
     </div>
   );
 };
 
-export default AdminLeaves;
+export default ApplyLeave;
