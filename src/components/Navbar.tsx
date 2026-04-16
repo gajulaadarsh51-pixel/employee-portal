@@ -1,6 +1,6 @@
-// FILE: src/components/Navbar.tsx (Updated with Compact Notification UI)
+// FILE: src/components/Navbar.tsx (Updated with Laptop icon)
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,21 +13,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Coffee,
-  LayoutDashboard,
-  Users,
-  FileText,
-  CalendarDays,
-  ClipboardList,
-  BarChart3,
+  Laptop,
   User,
   LogOut,
   Menu,
   X,
-  Send,
-  CheckCircle,
-  UserCircle,
-  FileCheck,
   Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -39,17 +29,9 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-const adminNav: NavItem[] = [
-  { label: "Dashboard", path: "/admin/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
-  { label: "Employees", path: "/admin/employees", icon: <Users className="h-4 w-4" /> },
-  { label: "Payslips", path: "/admin/payslips", icon: <FileText className="h-4 w-4" /> },
-];
+const adminNav: NavItem[] = [];
 
-const employeeNav: NavItem[] = [
-  { label: "Dashboard", path: "/employee/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
-  { label: "Payslips", path: "/employee/payslips", icon: <FileText className="h-4 w-4" /> },
-  
-];
+const employeeNav: NavItem[] = [];
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -58,6 +40,7 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadNotifications = () => {
@@ -74,11 +57,25 @@ const Navbar = () => {
     };
   }, []);
 
+  // Close notification dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   if (!user) return null;
 
   const navItems = user.role === "ADMIN" ? adminNav : employeeNav;
   const profilePath = user.role === "ADMIN" ? "/admin/profile" : "/employee/profile";
-  const unreadCount = notifications.length; // All notifications are unread now
+  const unreadCount = notifications.length;
 
   const handleLogout = () => {
     logout();
@@ -104,20 +101,20 @@ const Navbar = () => {
     .toUpperCase();
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-card/80 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 w-full bg-white border-b border-gray-200">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Left: Logo */}
           <Link to={user.role === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard"} className="flex items-center gap-2 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-chocolate transition-transform group-hover:scale-105">
-              <Coffee className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 transition-transform group-hover:scale-105 shadow-md">
+              <Laptop className="h-5 w-5 text-white" />
             </div>
             <span className="text-lg font-bold text-foreground hidden sm:block" style={{ fontFamily: "'Playfair Display', serif" }}>
-              TruffleHR
+              Employee
             </span>
           </Link>
 
-          {/* Center: Nav Links (Desktop) */}
+          {/* Center: Nav Links (Desktop) - Empty for both roles */}
           <div className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
@@ -128,7 +125,7 @@ const Navbar = () => {
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-md"
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
@@ -142,12 +139,12 @@ const Navbar = () => {
           {/* Right: Notifications + Profile + Mobile Toggle */}
           <div className="flex items-center gap-3">
             {/* Notification Bell */}
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setNotifOpen(!notifOpen)}
                 className="relative p-2 rounded-lg hover:bg-muted transition-colors"
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-5 w-5 text-muted-foreground" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                     {unreadCount > 9 ? '9+' : unreadCount}
@@ -155,10 +152,10 @@ const Navbar = () => {
                 )}
               </button>
 
-              {/* Notifications Dropdown - Compact UI */}
+              {/* Notifications Dropdown */}
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white border rounded-xl shadow-lg z-50 overflow-hidden">
-                  <div className="px-3 py-2 font-semibold text-sm border-b bg-gray-50">
+                <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                  <div className="px-3 py-2 font-semibold text-sm border-b border-gray-200 text-foreground">
                     Notifications
                     {unreadCount > 0 && (
                       <span className="ml-2 text-xs text-muted-foreground">
@@ -177,10 +174,10 @@ const Navbar = () => {
                       notifications.map((notification) => (
                         <div
                           key={notification.id}
-                          className="p-2 border-b cursor-pointer hover:bg-gray-50 transition-colors"
+                          className="p-2 border-b border-gray-100 cursor-pointer hover:bg-muted transition-colors"
                           onClick={() => handleNotificationClick(notification)}
                         >
-                          <p className="text-xs font-semibold text-gray-800">{notification.title}</p>
+                          <p className="text-xs font-semibold text-foreground">{notification.title}</p>
                           <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
                             {notification.message}
                           </p>
@@ -195,7 +192,7 @@ const Navbar = () => {
 
                   {notifications.length > 0 && (
                     <div
-                      className="px-3 py-1.5 text-center text-xs text-blue-600 cursor-pointer hover:bg-blue-50 transition-colors border-t"
+                      className="px-3 py-1.5 text-center text-xs text-blue-600 cursor-pointer hover:bg-muted transition-colors border-t border-gray-200"
                       onClick={handleMarkAllRead}
                     >
                       Clear all
@@ -209,7 +206,7 @@ const Navbar = () => {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-full p-1 pr-3 hover:bg-muted transition-colors">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-accent text-accent-foreground text-xs font-semibold">
+                    <AvatarFallback className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-semibold">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
@@ -219,7 +216,7 @@ const Navbar = () => {
                   </div>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200">
                 <DropdownMenuItem onClick={() => navigate(profilePath)}>
                   <User className="mr-2 h-4 w-4" />
                   Profile
@@ -250,7 +247,7 @@ const Navbar = () => {
 
       {/* Mobile Nav */}
       {mobileOpen && (
-        <div className="lg:hidden border-t border-border/40 bg-card/95 backdrop-blur-xl animate-fade-in">
+        <div className="lg:hidden border-t border-gray-200 bg-white animate-fade-in">
           <div className="px-4 py-3 space-y-1">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
@@ -262,7 +259,7 @@ const Navbar = () => {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                     isActive
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
@@ -272,7 +269,7 @@ const Navbar = () => {
               );
             })}
             
-            <div className="pt-2 border-t mt-2">
+            <div className="pt-2 border-t border-gray-200 mt-2">
               <button
                 onClick={() => {
                   handleLogout();

@@ -1,292 +1,488 @@
+// FILE: src/pages/admin/AdminEmployees.tsx (Complete with all fields)
+
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Plus, Search, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import BackButton from "@/components/BackButton";
 
-// Update mockUsers in localStorage when adding employee
-const updateMockUsers = (newEmployee: any) => {
-  const existingUsers = JSON.parse(localStorage.getItem("mockUsers") || "[]");
-  const userForAuth = {
-    id: newEmployee.id,
-    email: newEmployee.email,
-    password: newEmployee.password,
-    name: newEmployee.name,
-    role: "EMPLOYEE",
-    employeeId: newEmployee.employeeId,
-    designation: newEmployee.designation,
-    joiningDate: newEmployee.joiningDate,
-    department: newEmployee.department,
-    phone: newEmployee.phone,
-  };
-  const updatedUsers = [...existingUsers, userForAuth];
-  localStorage.setItem("mockUsers", JSON.stringify(updatedUsers));
-};
-
-// Remove user from mockUsers when employee is deleted
-const removeFromMockUsers = (email: string) => {
-  const existingUsers = JSON.parse(localStorage.getItem("mockUsers") || "[]");
-  const updatedUsers = existingUsers.filter((user: any) => user.email !== email);
-  localStorage.setItem("mockUsers", JSON.stringify(updatedUsers));
-};
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+  department: string;
+  joinDate: string;
+  // Job Details
+  designation: string;
+  salary: string;
+  // Experience
+  totalExperience: string;
+  relevantExperience: string;
+  previousCompany: string;
+  // Education
+  qualification: string;
+  college: string;
+  yearOfPassing: string;
+  // Bank Details
+  bankName: string;
+  branchName: string;
+  accountNumber: string;
+  ifsc: string;
+  // Address
+  currentAddress: string;
+  permanentAddress: string;
+  temporaryAddress: string;
+  // Documents
+  certificates: string;
+}
 
 const AdminEmployees = () => {
-  const { toast } = useToast();
-  const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [newEmp, setNewEmp] = useState({
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    employeeId: "",
+    department: "",
+    // Job
+    designation: "",
+    salary: "",
+    // Experience
+    totalExperience: "",
+    relevantExperience: "",
+    previousCompany: "",
+    // Education
+    qualification: "",
+    college: "",
+    yearOfPassing: "",
+    // Bank
+    bankName: "",
+    branchName: "",
+    accountNumber: "",
+    ifsc: "",
+    // Address
+    currentAddress: "",
+    permanentAddress: "",
+    temporaryAddress: "",
+    // Documents
+    certificates: "",
   });
+  const { toast } = useToast();
 
-  // Load employees from localStorage on component mount
   useEffect(() => {
-    const storedEmployees = JSON.parse(localStorage.getItem("employees") || "[]");
-    setEmployees(storedEmployees);
+    loadEmployees();
   }, []);
 
-  const handleCreate = (e: React.FormEvent) => {
+  const loadEmployees = () => {
+    const stored = JSON.parse(localStorage.getItem("employees") || "[]");
+    setEmployees(stored);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!newEmp.name || !newEmp.email || !newEmp.password || !newEmp.employeeId) {
-      toast({
-        title: "Error",
-        description: "Please fill all fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check if employee already exists
-    const existingEmployees = JSON.parse(localStorage.getItem("employees") || "[]");
     
-    // Check for duplicate email
-    const emailExists = existingEmployees.some((emp: any) => emp.email === newEmp.email);
-    if (emailExists) {
-      toast({
-        title: "Error",
-        description: "Employee with this email already exists",
-        variant: "destructive",
-      });
-      return;
+    if (editingEmployee) {
+      // Update existing employee
+      const updated = employees.map((emp) =>
+        emp.id === editingEmployee.id
+          ? { 
+              ...emp, 
+              name: formData.name, 
+              email: formData.email, 
+              department: formData.department,
+              designation: formData.designation,
+              salary: formData.salary,
+              totalExperience: formData.totalExperience,
+              relevantExperience: formData.relevantExperience,
+              previousCompany: formData.previousCompany,
+              qualification: formData.qualification,
+              college: formData.college,
+              yearOfPassing: formData.yearOfPassing,
+              bankName: formData.bankName,
+              branchName: formData.branchName,
+              accountNumber: formData.accountNumber,
+              ifsc: formData.ifsc,
+              currentAddress: formData.currentAddress,
+              permanentAddress: formData.permanentAddress,
+              temporaryAddress: formData.temporaryAddress,
+              certificates: formData.certificates,
+            }
+          : emp
+      );
+      localStorage.setItem("employees", JSON.stringify(updated));
+      toast({ title: "Success", description: "Employee updated successfully" });
+    } else {
+      // Add new employee - PASSWORD IS REQUIRED
+      if (!formData.password) {
+        toast({ title: "Error", description: "Password is required", variant: "destructive" });
+        return;
+      }
+      
+      const newEmployee: Employee = {
+        id: Date.now().toString(),
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: "EMPLOYEE",
+        department: formData.department,
+        joinDate: new Date().toISOString(),
+        // Job Details
+        designation: formData.designation,
+        salary: formData.salary,
+        // Experience
+        totalExperience: formData.totalExperience,
+        relevantExperience: formData.relevantExperience,
+        previousCompany: formData.previousCompany,
+        // Education
+        qualification: formData.qualification,
+        college: formData.college,
+        yearOfPassing: formData.yearOfPassing,
+        // Bank Details
+        bankName: formData.bankName,
+        branchName: formData.branchName,
+        accountNumber: formData.accountNumber,
+        ifsc: formData.ifsc,
+        // Address
+        currentAddress: formData.currentAddress,
+        permanentAddress: formData.permanentAddress,
+        temporaryAddress: formData.temporaryAddress,
+        // Documents
+        certificates: formData.certificates,
+      };
+      
+      const updated = [...employees, newEmployee];
+      localStorage.setItem("employees", JSON.stringify(updated));
+      toast({ title: "Success", description: "Employee added successfully" });
     }
-
-    // Check for duplicate Employee ID
-    const idExists = existingEmployees.some((emp: any) => emp.employeeId === newEmp.employeeId);
-    if (idExists) {
-      toast({
-        title: "Error",
-        description: "Employee ID already exists. Please use a unique ID",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Create new employee object
-    const newEmployee = {
-      id: Date.now().toString(),
-      name: newEmp.name,
-      email: newEmp.email,
-      password: newEmp.password,
-      employeeId: newEmp.employeeId,
-      designation: "New Employee",
-      department: "General",
-      joiningDate: new Date().toISOString().split("T")[0],
-      phone: "",
-      workStatus: "Active",
-      role: "EMPLOYEE",
-    };
-
-    // Save to localStorage
-    const updatedEmployees = [...existingEmployees, newEmployee];
-    localStorage.setItem("employees", JSON.stringify(updatedEmployees));
     
-    // Also update mockUsers for authentication
-    updateMockUsers(newEmployee);
-    
-    // Update state
-    setEmployees(updatedEmployees);
-
-    toast({
-      title: "Employee Created",
-      description: `${newEmp.name} added successfully with ID: ${newEmp.employeeId}`,
+    loadEmployees();
+    setIsOpen(false);
+    setEditingEmployee(null);
+    setFormData({ 
+      name: "", 
+      email: "", 
+      password: "", 
+      department: "",
+      designation: "",
+      salary: "",
+      totalExperience: "",
+      relevantExperience: "",
+      previousCompany: "",
+      qualification: "",
+      college: "",
+      yearOfPassing: "",
+      bankName: "",
+      branchName: "",
+      accountNumber: "",
+      ifsc: "",
+      currentAddress: "",
+      permanentAddress: "",
+      temporaryAddress: "",
+      certificates: "",
     });
-
-    // Reset form
-    setNewEmp({ name: "", email: "", password: "", employeeId: "" });
-    setDialogOpen(false);
   };
 
-  const handleDelete = (id: string, email: string, name: string) => {
-    // Filter out the employee to delete
-    const updatedEmployees = employees.filter((emp) => emp.id !== id);
-    
-    // Update state and localStorage
-    setEmployees(updatedEmployees);
-    localStorage.setItem("employees", JSON.stringify(updatedEmployees));
-    
-    // Remove from mockUsers so they can't login
-    removeFromMockUsers(email);
-    
-    toast({
-      title: "Employee Removed",
-      description: `${name} has been removed from the system`,
+  const handleEdit = (employee: Employee) => {
+    setEditingEmployee(employee);
+    setFormData({
+      name: employee.name,
+      email: employee.email,
+      password: "",
+      department: employee.department,
+      designation: employee.designation || "",
+      salary: employee.salary || "",
+      totalExperience: employee.totalExperience || "",
+      relevantExperience: employee.relevantExperience || "",
+      previousCompany: employee.previousCompany || "",
+      qualification: employee.qualification || "",
+      college: employee.college || "",
+      yearOfPassing: employee.yearOfPassing || "",
+      bankName: employee.bankName || "",
+      branchName: employee.branchName || "",
+      accountNumber: employee.accountNumber || "",
+      ifsc: employee.ifsc || "",
+      currentAddress: employee.currentAddress || "",
+      permanentAddress: employee.permanentAddress || "",
+      temporaryAddress: employee.temporaryAddress || "",
+      certificates: employee.certificates || "",
     });
+    setIsOpen(true);
   };
 
-  // Filter employees based on search
-  const filtered = employees.filter(
-    (e) =>
-      e.name?.toLowerCase().includes(search.toLowerCase()) ||
-      e.email?.toLowerCase().includes(search.toLowerCase()) ||
-      e.employeeId?.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this employee?")) {
+      const updated = employees.filter((emp) => emp.id !== id);
+      localStorage.setItem("employees", JSON.stringify(updated));
+      loadEmployees();
+      toast({ title: "Success", description: "Employee deleted successfully" });
+    }
+  };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20">
-            <Users className="h-5 w-5 text-accent" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Employees</h1>
-            <p className="text-sm text-muted-foreground">{employees.length} total employees</p>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <BackButton />
 
-        <div className="flex gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input 
-              placeholder="Search employees..." 
-              className="pl-9 w-60" 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
-            />
-          </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-1 h-4 w-4" />
-                Add Employee
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Employee Account</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Full Name *</Label>
-                  <Input 
-                    value={newEmp.name} 
-                    onChange={(e) => setNewEmp({ ...newEmp, name: e.target.value })} 
-                    placeholder="John Doe" 
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Email *</Label>
-                  <Input 
-                    type="email" 
-                    value={newEmp.email} 
-                    onChange={(e) => setNewEmp({ ...newEmp, email: e.target.value })} 
-                    placeholder="john@company.com" 
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Employee ID *</Label>
-                  <Input
-                    value={newEmp.employeeId}
-                    onChange={(e) => setNewEmp({ ...newEmp, employeeId: e.target.value })}
-                    placeholder="EMP001"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">Enter a unique Employee ID (e.g., EMP001, E1001)</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Password *</Label>
-                  <Input 
-                    type="password" 
-                    value={newEmp.password} 
-                    onChange={(e) => setNewEmp({ ...newEmp, password: e.target.value })} 
-                    placeholder="Set initial password" 
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full">Create Employee</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Employees</h2>
+          <p className="text-muted-foreground">Manage employee accounts and information</p>
         </div>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Employee
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingEmployee ? "Edit Employee" : "Add New Employee"}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Basic Information */}
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name *</Label>
+                <Input
+                  id="name"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+              {!editingEmployee && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    placeholder="Enter password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">Employee will use this password to login</p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="department">Department *</Label>
+                <Input
+                  id="department"
+                  required
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                />
+              </div>
+
+              {/* Job Details */}
+              <div className="pt-2">
+                <div className="font-semibold text-foreground mb-2">Job Details</div>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Designation"
+                    value={formData.designation}
+                    onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Salary"
+                    value={formData.salary}
+                    onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Experience Details */}
+              <div className="pt-2">
+                <div className="font-semibold text-foreground mb-2">Experience Details</div>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Total Experience (Years)"
+                    value={formData.totalExperience}
+                    onChange={(e) => setFormData({ ...formData, totalExperience: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Relevant Experience (Years)"
+                    value={formData.relevantExperience}
+                    onChange={(e) => setFormData({ ...formData, relevantExperience: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Previous Company"
+                    value={formData.previousCompany}
+                    onChange={(e) => setFormData({ ...formData, previousCompany: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Education */}
+              <div className="pt-2">
+                <div className="font-semibold text-foreground mb-2">Education</div>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Highest Qualification"
+                    value={formData.qualification}
+                    onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
+                  />
+                  <Input
+                    placeholder="College / University"
+                    value={formData.college}
+                    onChange={(e) => setFormData({ ...formData, college: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Year of Passing"
+                    value={formData.yearOfPassing}
+                    onChange={(e) => setFormData({ ...formData, yearOfPassing: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Bank Details */}
+              <div className="pt-2">
+                <div className="font-semibold text-foreground mb-2">Bank Details</div>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Bank Name"
+                    value={formData.bankName}
+                    onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Branch Name"
+                    value={formData.branchName}
+                    onChange={(e) => setFormData({ ...formData, branchName: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Account Number"
+                    value={formData.accountNumber}
+                    onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                  />
+                  <Input
+                    placeholder="IFSC Code"
+                    value={formData.ifsc}
+                    onChange={(e) => setFormData({ ...formData, ifsc: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Address Details */}
+              <div className="pt-2">
+                <div className="font-semibold text-foreground mb-2">Address Details</div>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Current Address"
+                    value={formData.currentAddress}
+                    onChange={(e) => setFormData({ ...formData, currentAddress: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Permanent Address"
+                    value={formData.permanentAddress}
+                    onChange={(e) => setFormData({ ...formData, permanentAddress: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Temporary Address"
+                    value={formData.temporaryAddress}
+                    onChange={(e) => setFormData({ ...formData, temporaryAddress: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Documents */}
+              <div className="pt-2">
+                <div className="font-semibold text-foreground mb-2">Documents</div>
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        certificates: e.target.files?.[0]?.name || "",
+                      })
+                    }
+                  />
+                  {formData.certificates && (
+                    <p className="text-xs text-green-600">Selected: {formData.certificates}</p>
+                  )}
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full mt-4">
+                {editingEmployee ? "Update" : "Add"} Employee
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Card className="glass-card">
-        <CardContent className="p-0">
-          {filtered.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <h3 className="text-lg font-semibold text-foreground mb-1">No employees yet</h3>
-              <p className="text-sm text-muted-foreground">
-                Click "Add Employee" button above to create your first employee
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Designation</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell className="font-mono text-sm">{e.employeeId}</TableCell>
-                    <TableCell className="font-medium">{e.name}</TableCell>
-                    <TableCell>{e.email}</TableCell>
-                    <TableCell>{e.designation}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{e.department}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                        {e.workStatus}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(e.id, e.email, e.name)}
-                        className="flex items-center gap-1"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Delete
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Department</TableHead>
+              <TableHead>Designation</TableHead>
+              <TableHead>Join Date</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {employees.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  No employees found
+                </TableCell>
+              </TableRow>
+            ) : (
+              employees.map((emp) => (
+                <TableRow key={emp.id}>
+                  <TableCell className="font-medium">{emp.name}</TableCell>
+                  <TableCell>{emp.email}</TableCell>
+                  <TableCell>{emp.department || "—"}</TableCell>
+                  <TableCell>{emp.designation || "—"}</TableCell>
+                  <TableCell>{emp.joinDate ? new Date(emp.joinDate).toLocaleDateString() : "—"}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(emp)}>
+                        <Edit className="h-4 w-4" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(emp.id)}>
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 };

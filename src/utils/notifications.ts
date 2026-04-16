@@ -1,4 +1,4 @@
-// FILE: src/utils/notifications.ts (Updated with remove logic)
+// FILE: src/utils/notifications.ts (Updated with role-based filtering)
 
 export interface Notification {
   id: string;
@@ -7,6 +7,7 @@ export interface Notification {
   link: string;
   read: boolean;
   createdAt: string;
+  target: "ADMIN" | "EMPLOYEE"; // 🔥 NEW - Role-based targeting
 }
 
 // Helper function to save notifications
@@ -30,14 +31,27 @@ export const addNotification = (notification: Omit<Notification, 'createdAt' | '
 };
 
 export const getNotifications = (): Notification[] => {
-  return JSON.parse(localStorage.getItem("notifications") || "[]");
+  const all = JSON.parse(localStorage.getItem("notifications") || "[]");
+  
+  // Get current user role
+  const user = JSON.parse(localStorage.getItem("hr_user") || "{}");
+  const userRole = user.role;
+  
+  // Filter notifications based on user role
+  if (userRole === "ADMIN") {
+    return all.filter((n: Notification) => n.target === "ADMIN");
+  } else if (userRole === "EMPLOYEE") {
+    return all.filter((n: Notification) => n.target === "EMPLOYEE");
+  }
+  
+  return [];
 };
 
 export const markAsRead = (id: string) => {
-  const existing = getNotifications();
+  const existing = JSON.parse(localStorage.getItem("notifications") || "[]");
   
   // REMOVE notification instead of marking read
-  const updated = existing.filter((n) => n.id !== id);
+  const updated = existing.filter((n: Notification) => n.id !== id);
   
   saveNotifications(updated);
   
@@ -52,8 +66,8 @@ export const markAllAsRead = () => {
 };
 
 export const deleteNotification = (id: string): void => {
-  const notifications = getNotifications();
-  const updated = notifications.filter(n => n.id !== id);
+  const notifications = JSON.parse(localStorage.getItem("notifications") || "[]");
+  const updated = notifications.filter((n: Notification) => n.id !== id);
   saveNotifications(updated);
   window.dispatchEvent(new Event('notifications-updated'));
 };
