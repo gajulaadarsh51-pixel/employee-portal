@@ -1,127 +1,174 @@
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// FILE: src/pages/admin/AdminLeaves.tsx (With BackButton)
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send } from "lucide-react";
+import { addNotification } from "@/utils/notifications";
 import { useToast } from "@/hooks/use-toast";
-import { LeaveType } from "@/types/hr";
+import BackButton from "@/components/BackButton";
 
-const leaveTypes: LeaveType[] = ["Casual", "Sick", "Earned", "Maternity", "Paternity", "Unpaid"];
+interface LeaveRequest {
+  id: string;
+  employeeName: string;
+  employeeId: string;
+  startDate: string;
+  endDate: string;
+  type: string;
+  reason: string;
+  status: string;
+  appliedOn: string;
+}
 
-const ApplyLeave = () => {
-  const { user } = useAuth();
+const AdminLeaves = () => {
+  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const { toast } = useToast();
-  const [leaveType, setLeaveType] = useState<string>("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [reason, setReason] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    loadLeaves();
+  }, []);
 
-    if (!leaveType || !startDate || !endDate || !reason) {
-      toast({
-        title: "Error",
-        description: "Please fill all fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Get existing leave requests from localStorage
-    const existing = JSON.parse(localStorage.getItem("leaveRequests") || "[]");
-
-    // Create new leave request
-    const newLeave = {
-      id: Date.now().toString(),
-      userId: user?.id,
-      employeeName: user?.name,
-      leaveType,
-      startDate,
-      endDate,
-      reason,
-      status: "Pending",
-      appliedOn: new Date().toISOString().split("T")[0],
-    };
-
-    // Save to localStorage
-    localStorage.setItem("leaveRequests", JSON.stringify([...existing, newLeave]));
-
-    toast({
-      title: "Leave Applied",
-      description: "Your leave request has been submitted successfully.",
-    });
-
-    // Reset form
-    setLeaveType("");
-    setStartDate("");
-    setEndDate("");
-    setReason("");
+  const loadLeaves = () => {
+    const stored = JSON.parse(localStorage.getItem("leaveRequests") || "[]");
+    setLeaves(stored);
   };
 
+  const handleApprove = (leave: LeaveRequest) => {
+    const updated = leaves.map(l =>
+      l.id === leave.id ? { ...l, status: "Approved" } : l
+    );
+    localStorage.setItem("leaveRequests", JSON.stringify(updated));
+    loadLeaves();
+
+    addNotification({
+      id: Date.now().toString(),
+      title: "Leave Approved",
+      message: `Your ${leave.type} leave from ${leave.startDate} to ${leave.endDate} has been approved`,
+      link: "/employee/leave-status",
+      read: false,
+    });
+
+    toast({
+      title: "Leave Approved",
+      description: `Leave request for ${leave.employeeName} has been approved.`,
+    });
+  };
+
+  const handleReject = (leave: LeaveRequest) => {
+    const updated = leaves.map(l =>
+      l.id === leave.id ? { ...l, status: "Rejected" } : l
+    );
+    localStorage.setItem("leaveRequests", JSON.stringify(updated));
+    loadLeaves();
+
+    addNotification({
+      id: Date.now().toString(),
+      title: "Leave Rejected",
+      message: `Your ${leave.type} leave request has been rejected. Please contact HR for details.`,
+      link: "/employee/leave-status",
+      read: false,
+    });
+
+    toast({
+      title: "Leave Rejected",
+      description: `Leave request for ${leave.employeeName} has been rejected.`,
+      variant: "destructive",
+    });
+  };
+
+  const pendingLeaves = leaves.filter(l => l.status === "Pending");
+  const approvedLeaves = leaves.filter(l => l.status === "Approved");
+  const rejectedLeaves = leaves.filter(l => l.status === "Rejected");
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20">
-          <Send className="h-5 w-5 text-accent" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Apply for Leave</h1>
-          <p className="text-sm text-muted-foreground">Submit your leave request</p>
-        </div>
+    <div className="space-y-6">
+      <BackButton />
+      
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Leave Requests</h2>
+        <p className="text-muted-foreground">Manage employee leave requests</p>
       </div>
 
-      <Card className="bg-white border rounded-xl shadow-sm">
-        <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label>Leave Type *</Label>
-              <Select value={leaveType} onValueChange={setLeaveType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select leave type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {leaveTypes.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Start Date *</Label>
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+      {/* Pending Requests */}
+      <div className="space-y-3">
+        <h3 className="text-lg font-semibold">Pending Requests ({pendingLeaves.length})</h3>
+        {pendingLeaves.length === 0 ? (
+          <div className="card text-center py-8 text-muted-foreground">
+            No pending leave requests
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {pendingLeaves.map((leave) => (
+              <div key={leave.id} className="card">
+                <div className="flex flex-wrap justify-between items-start gap-3">
+                  <div className="space-y-1">
+                    <p className="font-medium">{leave.employeeName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {leave.type} Leave | {leave.startDate} to {leave.endDate}
+                    </p>
+                    <p className="text-sm">{leave.reason}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Applied on: {new Date(leave.appliedOn).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => handleApprove(leave)}>
+                      Approve
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleReject(leave)}>
+                      Reject
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>End Date *</Label>
-                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Approved Requests */}
+      {approvedLeaves.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Approved Requests ({approvedLeaves.length})</h3>
+          <div className="grid gap-3">
+            {approvedLeaves.map((leave) => (
+              <div key={leave.id} className="card bg-green-50">
+                <div className="flex flex-wrap justify-between items-start gap-3">
+                  <div>
+                    <p className="font-medium">{leave.employeeName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {leave.type} Leave | {leave.startDate} to {leave.endDate}
+                    </p>
+                  </div>
+                  <span className="text-green-700 text-sm font-medium">✓ Approved</span>
+                </div>
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Reason *</Label>
-              <Textarea 
-                placeholder="Describe the reason for leave..." 
-                value={reason} 
-                onChange={(e) => setReason(e.target.value)} 
-                rows={4} 
-              />
-            </div>
-            
-            <Button type="submit" className="w-full">
-              <Send className="mr-2 h-4 w-4" />
-              Submit Leave Request
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Rejected Requests */}
+      {rejectedLeaves.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Rejected Requests ({rejectedLeaves.length})</h3>
+          <div className="grid gap-3">
+            {rejectedLeaves.map((leave) => (
+              <div key={leave.id} className="card bg-red-50">
+                <div className="flex flex-wrap justify-between items-start gap-3">
+                  <div>
+                    <p className="font-medium">{leave.employeeName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {leave.type} Leave | {leave.startDate} to {leave.endDate}
+                    </p>
+                  </div>
+                  <span className="text-red-700 text-sm font-medium">✗ Rejected</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default ApplyLeave;
+export default AdminLeaves;

@@ -1,174 +1,112 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// FILE: src/pages/employee/EmployeePersonalDetails.tsx (With BackButton)
+
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { addNotification } from "@/utils/notifications";
+import { useToast } from "@/hooks/use-toast";
+import BackButton from "@/components/BackButton";
 
 const EmployeePersonalDetails = () => {
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
     phone: "",
-    dob: "",
-    gender: "",
     address: "",
-    city: "",
-    state: "",
-    zip: "",
-    aadhaar: "",
-    pan: "",
-    bankName: "",
-    accountNumber: "",
-    ifsc: "",
     emergencyContact: "",
-    emergencyPhone: "",
+    bankAccount: "",
+    panNumber: "",
+    requestType: "Update",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem(`personal_details_${user?.id}`) || "{}");
+    setFormData(prev => ({ ...prev, ...saved }));
+  }, [user]);
 
-  const handleSubmit = () => {
-    // Validate required fields
-    if (!form.fullName || !form.email || !form.phone) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    localStorage.setItem(`personal_details_${user?.id}`, JSON.stringify(formData));
 
-    const existing = JSON.parse(localStorage.getItem("personalRequests") || "[]");
+    addNotification({
+      id: Date.now().toString(),
+      title: "Personal Details Update Request",
+      message: `${user?.name} requested to update personal information`,
+      link: "/admin/personal-details",
+      read: false,
+    });
 
-    const newRequest = {
-      id: Date.now(),
-      ...form,
-      status: "PENDING",
-      submittedAt: new Date().toISOString(),
-    };
-
-    localStorage.setItem("personalRequests", JSON.stringify([...existing, newRequest]));
-
-    toast.success("Personal details request submitted successfully!");
-
-    // Reset form
-    setForm({
-      fullName: "",
-      email: "",
-      phone: "",
-      dob: "",
-      gender: "",
-      address: "",
-      city: "",
-      state: "",
-      zip: "",
-      aadhaar: "",
-      pan: "",
-      bankName: "",
-      accountNumber: "",
-      ifsc: "",
-      emergencyContact: "",
-      emergencyPhone: "",
+    toast({
+      title: "Request Submitted",
+      description: "Your personal details update request has been sent to admin.",
     });
   };
 
   return (
-    <Card className="shadow-soft animate-fade-in">
-      <CardHeader>
-        <CardTitle>Personal Details Form</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Fill in your personal details. This information will be reviewed by admin.
-        </p>
-      </CardHeader>
-
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="fullName">Full Name *</Label>
-            <Input id="fullName" name="fullName" placeholder="Full Name" value={form.fullName} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
-            <Input id="email" name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone *</Label>
-            <Input id="phone" name="phone" placeholder="Phone" value={form.phone} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="dob">Date of Birth</Label>
-            <Input id="dob" name="dob" type="date" value={form.dob} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="gender">Gender</Label>
-            <Input id="gender" name="gender" placeholder="Gender" value={form.gender} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <Input id="address" name="address" placeholder="Address" value={form.address} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="city">City</Label>
-            <Input id="city" name="city" placeholder="City" value={form.city} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="state">State</Label>
-            <Input id="state" name="state" placeholder="State" value={form.state} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="zip">ZIP Code</Label>
-            <Input id="zip" name="zip" placeholder="ZIP Code" value={form.zip} onChange={handleChange} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="aadhaar">Aadhaar Number</Label>
-            <Input id="aadhaar" name="aadhaar" placeholder="Aadhaar Number" value={form.aadhaar} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="pan">PAN Number</Label>
-            <Input id="pan" name="pan" placeholder="PAN Number" value={form.pan} onChange={handleChange} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="bankName">Bank Name</Label>
-            <Input id="bankName" name="bankName" placeholder="Bank Name" value={form.bankName} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="accountNumber">Account Number</Label>
-            <Input id="accountNumber" name="accountNumber" placeholder="Account Number" value={form.accountNumber} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="ifsc">IFSC Code</Label>
-            <Input id="ifsc" name="ifsc" placeholder="IFSC Code" value={form.ifsc} onChange={handleChange} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="emergencyContact">Emergency Contact Name</Label>
-            <Input id="emergencyContact" name="emergencyContact" placeholder="Emergency Contact Name" value={form.emergencyContact} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="emergencyPhone">Emergency Phone</Label>
-            <Input id="emergencyPhone" name="emergencyPhone" placeholder="Emergency Phone" value={form.emergencyPhone} onChange={handleChange} />
-          </div>
+    <div className="max-w-2xl mx-auto">
+      <BackButton />
+      
+      <h2 className="text-2xl font-bold tracking-tight mb-6">Personal Details</h2>
+      
+      <form onSubmit={handleSubmit} className="card space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="phone">Phone Number</Label>
+          <Input
+            id="phone"
+            placeholder="Enter phone number"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+          />
         </div>
 
-        <div className="mt-6">
-          <Button onClick={handleSubmit} className="w-full">
-            Submit to Admin
-          </Button>
+        <div className="space-y-2">
+          <Label htmlFor="address">Address</Label>
+          <Textarea
+            id="address"
+            placeholder="Enter your address"
+            value={formData.address}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            rows={3}
+          />
         </div>
-      </CardContent>
-    </Card>
+
+        <div className="space-y-2">
+          <Label htmlFor="emergencyContact">Emergency Contact Number</Label>
+          <Input
+            id="emergencyContact"
+            placeholder="Emergency contact number"
+            value={formData.emergencyContact}
+            onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="bankAccount">Bank Account Number</Label>
+          <Input
+            id="bankAccount"
+            placeholder="Bank account number"
+            value={formData.bankAccount}
+            onChange={(e) => setFormData({ ...formData, bankAccount: e.target.value })}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="panNumber">PAN Number</Label>
+          <Input
+            id="panNumber"
+            placeholder="PAN number"
+            value={formData.panNumber}
+            onChange={(e) => setFormData({ ...formData, panNumber: e.target.value })}
+          />
+        </div>
+
+        <Button type="submit" className="w-full">Submit Update Request</Button>
+      </form>
+    </div>
   );
 };
 
