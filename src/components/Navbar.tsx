@@ -1,6 +1,6 @@
-// FILE: src/components/Navbar.tsx (Updated with Calendar links)
+// FILE: src/components/Navbar.tsx (Updated with Compact Notification UI)
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,8 +28,10 @@ import {
   CheckCircle,
   UserCircle,
   FileCheck,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getNotifications, markAsRead, markAllAsRead, Notification } from "@/utils/notifications";
 
 interface NavItem {
   label: string;
@@ -41,21 +43,12 @@ const adminNav: NavItem[] = [
   { label: "Dashboard", path: "/admin/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
   { label: "Employees", path: "/admin/employees", icon: <Users className="h-4 w-4" /> },
   { label: "Payslips", path: "/admin/payslips", icon: <FileText className="h-4 w-4" /> },
-  { label: "Leave Requests", path: "/admin/leaves", icon: <CalendarDays className="h-4 w-4" /> },
-  { label: "Calendar", path: "/admin/calendar", icon: <CalendarDays className="h-4 w-4" /> },
-  { label: "Resignations", path: "/admin/resignations", icon: <ClipboardList className="h-4 w-4" /> },
-  { label: "Reports", path: "/admin/reports", icon: <BarChart3 className="h-4 w-4" /> },
-  { label: "Personal Requests", path: "/admin/personal-details", icon: <FileCheck className="h-4 w-4" /> },
 ];
 
 const employeeNav: NavItem[] = [
   { label: "Dashboard", path: "/employee/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
   { label: "Payslips", path: "/employee/payslips", icon: <FileText className="h-4 w-4" /> },
-  { label: "Apply Leave", path: "/employee/apply-leave", icon: <Send className="h-4 w-4" /> },
-  { label: "Leave Status", path: "/employee/leave-status", icon: <CheckCircle className="h-4 w-4" /> },
-  { label: "Calendar", path: "/employee/calendar", icon: <CalendarDays className="h-4 w-4" /> },
-  { label: "Resignation", path: "/employee/resignation", icon: <ClipboardList className="h-4 w-4" /> },
-  { label: "Personal Details", path: "/employee/personal-details", icon: <UserCircle className="h-4 w-4" /> },
+  
 ];
 
 const Navbar = () => {
@@ -63,15 +56,45 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  useEffect(() => {
+    const loadNotifications = () => {
+      const stored = getNotifications();
+      setNotifications(stored);
+    };
+
+    loadNotifications();
+    
+    window.addEventListener('notifications-updated', loadNotifications);
+    
+    return () => {
+      window.removeEventListener('notifications-updated', loadNotifications);
+    };
+  }, []);
 
   if (!user) return null;
 
   const navItems = user.role === "ADMIN" ? adminNav : employeeNav;
   const profilePath = user.role === "ADMIN" ? "/admin/profile" : "/employee/profile";
+  const unreadCount = notifications.length; // All notifications are unread now
 
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    markAsRead(notification.id);
+    setNotifications(getNotifications());
+    navigate(notification.link);
+    setNotifOpen(false);
+  };
+
+  const handleMarkAllRead = () => {
+    markAllAsRead();
+    setNotifications(getNotifications());
   };
 
   const initials = user.name
@@ -116,8 +139,72 @@ const Navbar = () => {
             })}
           </div>
 
-          {/* Right: Profile + Mobile Toggle */}
+          {/* Right: Notifications + Profile + Mobile Toggle */}
           <div className="flex items-center gap-3">
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setNotifOpen(!notifOpen)}
+                className="relative p-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notifications Dropdown - Compact UI */}
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white border rounded-xl shadow-lg z-50 overflow-hidden">
+                  <div className="px-3 py-2 font-semibold text-sm border-b bg-gray-50">
+                    Notifications
+                    {unreadCount > 0 && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        ({unreadCount})
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center">
+                        <Bell className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-xs text-muted-foreground">No notifications</p>
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className="p-2 border-b cursor-pointer hover:bg-gray-50 transition-colors"
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <p className="text-xs font-semibold text-gray-800">{notification.title}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                            {notification.message}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {new Date(notification.createdAt).toLocaleDateString()} at{' '}
+                            {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {notifications.length > 0 && (
+                    <div
+                      className="px-3 py-1.5 text-center text-xs text-blue-600 cursor-pointer hover:bg-blue-50 transition-colors border-t"
+                      onClick={handleMarkAllRead}
+                    >
+                      Clear all
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-full p-1 pr-3 hover:bg-muted transition-colors">
@@ -185,7 +272,6 @@ const Navbar = () => {
               );
             })}
             
-            {/* Logout in mobile menu */}
             <div className="pt-2 border-t mt-2">
               <button
                 onClick={() => {

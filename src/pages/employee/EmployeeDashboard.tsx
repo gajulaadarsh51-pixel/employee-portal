@@ -1,77 +1,160 @@
+// FILE: src/pages/employee/EmployeeDashboard.tsx
+
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { 
+  Send, 
+  CheckCircle, 
+  CalendarDays, 
+  ClipboardList, 
+  UserCircle,
+  FileText,
+  TrendingUp,
+  Bell
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { User, Briefcase, Calendar, Hash, Activity } from "lucide-react";
 
 const EmployeeDashboard = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
-  if (!user) return null;
+  const [stats, setStats] = useState({
+    totalLeaves: 0,
+    approvedLeaves: 0,
+    pendingLeaves: 0,
+    unreadNotifications: 0
+  });
 
-  const stats = [
-    { label: "Employee ID", value: user.employeeId, icon: <Hash className="h-5 w-5" />, color: "bg-accent/20 text-accent" },
-    { label: "Designation", value: user.designation, icon: <Briefcase className="h-5 w-5" />, color: "bg-primary/20 text-primary" },
-    { label: "Joining Date", value: new Date(user.joiningDate).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" }), icon: <Calendar className="h-5 w-5" />, color: "bg-accent/20 text-accent" },
-    { label: "Work Status", value: "Active", icon: <Activity className="h-5 w-5" />, color: "bg-green-100 text-green-700" },
-  ];
+  useEffect(() => {
+    // Load leave data
+    const leaves = JSON.parse(localStorage.getItem("leaveRequests") || "[]");
+    const userLeaves = leaves.filter((l: any) => l.employeeName === user?.name);
+    
+    // Load notifications
+    const notifications = JSON.parse(localStorage.getItem("notifications") || "[]");
+    const unreadNotifications = notifications.filter((n: any) => !n.read).length;
+    
+    setStats({
+      totalLeaves: userLeaves.length,
+      approvedLeaves: userLeaves.filter((l: any) => l.status === "Approved").length,
+      pendingLeaves: userLeaves.filter((l: any) => l.status === "Pending").length,
+      unreadNotifications
+    });
+  }, [user]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Welcome Banner - Fixed text visibility */}
-      <div className="rounded-2xl bg-gradient-to-r from-primary/10 to-accent/10 border p-6 sm:p-8">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/20 backdrop-blur-sm">
-            <User className="h-7 w-7 text-primary" />
-          </div>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Employee Dashboard</h2>
+        <p className="text-muted-foreground">Welcome back, {user?.name}!</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="card flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Welcome back, {user.name.split(" ")[0]}!</h1>
-            <p className="text-muted-foreground">{user.department} · {user.designation}</p>
+            <p className="text-sm text-muted-foreground">Total Leaves</p>
+            <p className="text-2xl font-bold">{stats.totalLeaves}</p>
+          </div>
+          <FileText className="h-8 w-8 text-primary opacity-75" />
+        </div>
+
+        <div className="card flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">Approved Leaves</p>
+            <p className="text-2xl font-bold">{stats.approvedLeaves}</p>
+          </div>
+          <CheckCircle className="h-8 w-8 text-green-600 opacity-75" />
+        </div>
+
+        <div className="card flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">Pending Leaves</p>
+            <p className="text-2xl font-bold">{stats.pendingLeaves}</p>
+          </div>
+          <TrendingUp className="h-8 w-8 text-yellow-600 opacity-75" />
+        </div>
+
+        <div className="card flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">Notifications</p>
+            <p className="text-2xl font-bold">{stats.unreadNotifications}</p>
+          </div>
+          <Bell className="h-8 w-8 text-purple-600 opacity-75" />
+        </div>
+      </div>
+
+      {/* EMPLOYEE ACTION GRID */}
+      <div className="bg-white border rounded-2xl shadow-sm p-6">
+        <h2 className="text-xl font-semibold mb-6">Quick Actions</h2>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+          {/* Apply Leave */}
+          <div
+            onClick={() => navigate("/employee/apply-leave")}
+            className="p-6 rounded-2xl cursor-pointer bg-gradient-to-br from-blue-50 to-white border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+          >
+            <Send className="h-8 w-8 text-blue-600 mb-3" />
+            <p className="text-sm text-muted-foreground">Apply Leave</p>
+            <h3 className="text-lg font-semibold mt-1">New</h3>
+          </div>
+
+          {/* Leave Status */}
+          <div
+            onClick={() => navigate("/employee/leave-status")}
+            className="p-6 rounded-2xl cursor-pointer bg-gradient-to-br from-green-50 to-white border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+          >
+            <CheckCircle className="h-8 w-8 text-green-600 mb-3" />
+            <p className="text-sm text-muted-foreground">Leave Status</p>
+            <h3 className="text-lg font-semibold mt-1">View</h3>
+          </div>
+
+          {/* Calendar */}
+          <div
+            onClick={() => navigate("/employee/calendar")}
+            className="p-6 rounded-2xl cursor-pointer bg-gradient-to-br from-purple-50 to-white border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+          >
+            <CalendarDays className="h-8 w-8 text-purple-600 mb-3" />
+            <p className="text-sm text-muted-foreground">Calendar</p>
+            <h3 className="text-lg font-semibold mt-1">Open</h3>
+          </div>
+
+          {/* Resignation */}
+          <div
+            onClick={() => navigate("/employee/resignation")}
+            className="p-6 rounded-2xl cursor-pointer bg-gradient-to-br from-red-50 to-white border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+          >
+            <ClipboardList className="h-8 w-8 text-red-600 mb-3" />
+            <p className="text-sm text-muted-foreground">Resignation</p>
+            <h3 className="text-lg font-semibold mt-1">Submit</h3>
+          </div>
+
+          {/* Personal Details */}
+          <div
+            onClick={() => navigate("/employee/personal-details")}
+            className="p-6 rounded-2xl cursor-pointer bg-gradient-to-br from-yellow-50 to-white border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+          >
+            <UserCircle className="h-8 w-8 text-yellow-600 mb-3" />
+            <p className="text-sm text-muted-foreground">Personal Details</p>
+            <h3 className="text-lg font-semibold mt-1">Update</h3>
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.label} className="bg-white border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
-            <CardHeader className="flex flex-row items-center gap-3 pb-2">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.color}`}>
-                {stat.icon}
-              </div>
-              <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-lg font-semibold text-foreground">{stat.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Quick Info */}
-      <Card className="bg-white border rounded-xl shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg text-foreground">Personal Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Full Name</p>
-              <p className="font-medium text-foreground">{user.name}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-medium text-foreground">{user.email}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Phone</p>
-              <p className="font-medium text-foreground">{user.phone || "Not provided"}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Department</p>
-              <Badge variant="secondary" className="bg-primary/10 text-primary">{user.department}</Badge>
-            </div>
+      {/* Recent Activity Section */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="card">
+          <h3 className="font-semibold mb-3">Recent Leave Requests</h3>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">No recent leave requests</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="card">
+          <h3 className="font-semibold mb-3">Upcoming Holidays</h3>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">No upcoming holidays</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

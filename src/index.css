@@ -198,3 +198,152 @@
     background: #94A3B8;
   }
 }
+
+/* Calendar Event Types */
+.event-holiday {
+  background: #FEF3C7;
+  color: #92400E;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.event-event {
+  background: #DBEAFE;
+  color: #1E40AF;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.event-meeting {
+  background: #E0E7FF;
+  color: #3730A3;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.event-birthday {
+  background: #FCE7F3;
+  color: #9D174D;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Professional Calendar Styles */
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: #6366F1;
+  --rdp-background-color: #EEF2FF;
+  margin: 0 auto;
+}
+
+.rdp-day_selected {
+  background: #6366F1 !important;
+  color: white !important;
+  border-radius: 8px;
+}
+
+.rdp-day:hover {
+  background: #E0E7FF;
+  border-radius: 8px;
+}
+
+.rdp-day_today {
+  border: 1px solid #6366F1;
+  font-weight: bold;
+}
+
+.rdp-button:hover {
+  background-color: #E0E7FF !important;
+}
+
+.rdp-caption {
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.rdp-nav_button {
+  border-radius: 6px;
+}
+
+.rdp-nav_button:hover {
+  background-color: #E2E8F0;
+}
+
+/* Login Page Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-bounce-custom {
+  animation: bounce 2s ease-in-out infinite;
+}
+
+/* Pulse Animation for Background Blobs */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse 4s ease-in-out infinite;
+}
